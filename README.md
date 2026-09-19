@@ -2,13 +2,13 @@
 
 An enterprise-grade Dynamic QR Code Management and Engagement Platform engineered for modern businesses, brand marketers, and physical-to-digital omnichannel experiences.
 
-## Current Phase: QR-P0.1 (Public Website Foundation)
+## Current Phase: QR-P2.0 (QR Generation Core & Dynamic Redirect)
 
-This repository is currently in the **QR-P0.1 Public Website Stage**. 
+This repository is currently in **Phase QR-P2.0 (QR Generation Core + Dynamic Redirect)**.
 
-In this initial phase, we establish the core frontend foundation, design system, responsive navigation, SEO metadata architecture, accessibility baseline, and product messaging that communicates the platform's vision: an intelligent QR lifecycle, redirect management, and real-time engagement solution rather than a simple static image generator.
+In this phase, we introduce the full QR engine supporting Static and Dynamic QR codes, database models (`QrCode` scoped to active multi-tenant workspace organizations), high-performance 302 redirection at `/r/[shortCode]`, vector SVG and PNG rendering pipelines, active toggle switches, and the authenticated dashboard management interface at `/app/qr-codes`.
 
-Subsequent architectural layers (SaaS authentication, dynamic redirect routers, database persistence, analytics aggregation, and billing) are documented in [`docs/architecture/overview.md`](./docs/architecture/overview.md) and will be introduced in future platform milestones.
+Subsequent architectural layers (QR styling/logos/presets, scan analytics ingestion, and billing) are documented in [`docs/architecture/overview.md`](./docs/architecture/overview.md) and will be introduced in future platform milestones.
 
 ---
 
@@ -69,7 +69,7 @@ For this Public Website stage (`QR-P0.1`), only one variable is required:
 
 ## Project Structure
 
-```
+```text
 ├── docs/
 │   └── architecture/
 │       └── overview.md        # Current vs. future architecture specification

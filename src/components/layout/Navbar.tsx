@@ -90,21 +90,21 @@ export const Navbar: React.FC = () => {
             ))}
           </nav>
 
-          {/* Desktop Action Buttons (Only links to real existing sections) */}
+          {/* Desktop Action Buttons */}
           <div className="hidden md:flex items-center gap-2.5">
             <Button
-              href="#get-started"
+              href="/sign-in"
               variant="ghost"
               size="sm"
-              aria-label="Sign in to early access platform"
+              aria-label="Sign in to platform"
             >
               Sign In
             </Button>
             <Button
-              href="#get-started"
+              href="/sign-up"
               variant="primary"
               size="sm"
-              aria-label="Get started with early access"
+              aria-label="Get started with platform"
             >
               Get Started
             </Button>
@@ -165,7 +165,7 @@ export const Navbar: React.FC = () => {
             </nav>
             <div className="pt-3 border-t border-slate-100 flex flex-col gap-2">
               <Button
-                href="#get-started"
+                href="/sign-in"
                 variant="outline"
                 size="md"
                 className="w-full justify-center"
@@ -174,7 +174,7 @@ export const Navbar: React.FC = () => {
                 Sign In
               </Button>
               <Button
-                href="#get-started"
+                href="/sign-up"
                 variant="primary"
                 size="md"
                 className="w-full justify-center"

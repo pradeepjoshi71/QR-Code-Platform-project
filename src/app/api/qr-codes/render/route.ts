@@ -11,12 +11,27 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'Text query parameter is required.' }, { status: 400 });
     }
 
+    // Optional styling params
+    const fgColor = searchParams.get('fgColor') || undefined;
+    const bgColor = searchParams.get('bgColor') || undefined;
+    const logoUrl = searchParams.get('logoUrl') || undefined;
+    const ecl = searchParams.get('ecl') as 'L' | 'M' | 'Q' | 'H' | undefined;
+
+    const renderOptions = {
+      color: {
+        dark: fgColor || '#000000',
+        light: bgColor || '#ffffff',
+      },
+      logoUrl,
+      errorCorrectionLevel: ecl || 'M' as const,
+    };
+
     if (format === 'png') {
-      const dataUrl = await generateQRCodeDataURL(text);
+      const dataUrl = await generateQRCodeDataURL(text, renderOptions);
       return NextResponse.json({ dataUrl });
     }
 
-    const svg = await generateQRCodeSVG(text);
+    const svg = await generateQRCodeSVG(text, renderOptions);
     return new NextResponse(svg, {
       headers: {
         'Content-Type': 'image/svg+xml',

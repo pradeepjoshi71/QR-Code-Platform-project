@@ -76,7 +76,7 @@ export async function POST(req: Request) {
     const { userId, activeOrgId } = authResult;
 
     const body = await req.json();
-    const { name, type, destinationUrl } = body;
+    const { name, type, destinationUrl, styleConfig, scheduledStart, expiresAt, routingRules, geoRules } = body;
 
     if (!name || typeof name !== 'string' || !name.trim()) {
       return NextResponse.json({ error: 'A valid name is required.' }, { status: 400 });
@@ -112,6 +112,38 @@ export async function POST(req: Request) {
       shortCode = await generateUniqueShortCode();
     }
 
+    // Validate styleConfig if provided
+    const validatedStyleConfig =
+      styleConfig && typeof styleConfig === 'object' && !Array.isArray(styleConfig)
+        ? styleConfig
+        : null;
+
+    // Parse optional scheduling fields (DYNAMIC only; silently ignored for STATIC)
+    let parsedScheduledStart: Date | null = null;
+    let parsedExpiresAt: Date | null = null;
+    // Validate optional routingRules (DYNAMIC only; silently ignored for STATIC)
+    let validatedRoutingRules: Record<string, string> | null = null;
+    if (type === 'DYNAMIC') {
+      if (scheduledStart) {
+        const d = new Date(scheduledStart);
+        if (!isNaN(d.getTime())) parsedScheduledStart = d;
+      }
+      if (expiresAt) {
+        const d = new Date(expiresAt);
+        if (!isNaN(d.getTime())) parsedExpiresAt = d;
+      }
+      if (routingRules && typeof routingRules === 'object' && !Array.isArray(routingRules)) {
+        validatedRoutingRules = routingRules as Record<string, string>;
+      }
+    }
+    // Validate optional geoRules (DYNAMIC only; silently ignored for STATIC)
+    let validatedGeoRules: Record<string, string> | null = null;
+    if (type === 'DYNAMIC') {
+      if (geoRules && typeof geoRules === 'object' && !Array.isArray(geoRules)) {
+        validatedGeoRules = geoRules as Record<string, string>;
+      }
+    }
+
     const qrCode = await prisma.qrCode.create({
       data: {
         name: name.trim(),
@@ -121,6 +153,11 @@ export async function POST(req: Request) {
         organizationId: activeOrgId,
         createdByUserId: userId,
         isActive: true,
+        ...(validatedStyleConfig ? { styleConfig: validatedStyleConfig } : {}),
+        ...(validatedRoutingRules ? { routingRules: validatedRoutingRules } : {}),
+        ...(validatedGeoRules ? { geoRules: validatedGeoRules } : {}),
+        ...(parsedScheduledStart ? { scheduledStart: parsedScheduledStart } : {}),
+        ...(parsedExpiresAt ? { expiresAt: parsedExpiresAt } : {}),
       },
     });
 

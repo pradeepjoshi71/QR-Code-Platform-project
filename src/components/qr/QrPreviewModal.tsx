@@ -4,10 +4,18 @@ import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 
+interface StyleConfig {
+  fgColor?: string;
+  bgColor?: string;
+  logoUrl?: string;
+  errorCorrectionLevel?: 'L' | 'M' | 'Q' | 'H';
+}
+
 interface QrPreviewModalProps {
   name: string;
   type: 'STATIC' | 'DYNAMIC';
   targetUrl: string;
+  styleConfig?: StyleConfig | null;
   onClose: () => void;
 }
 
@@ -15,6 +23,7 @@ export const QrPreviewModal: React.FC<QrPreviewModalProps> = ({
   name,
   type,
   targetUrl,
+  styleConfig,
   onClose,
 }) => {
   const [svgContent, setSvgContent] = useState<string | null>(null);
@@ -26,15 +35,27 @@ export const QrPreviewModal: React.FC<QrPreviewModalProps> = ({
     const loadQR = async () => {
       setLoading(true);
       try {
+        // Build style query params
+        const styleParams = new URLSearchParams();
+        if (styleConfig?.fgColor) styleParams.set('fgColor', styleConfig.fgColor);
+        if (styleConfig?.bgColor) styleParams.set('bgColor', styleConfig.bgColor);
+        if (styleConfig?.logoUrl) styleParams.set('logoUrl', styleConfig.logoUrl);
+        if (styleConfig?.errorCorrectionLevel) styleParams.set('ecl', styleConfig.errorCorrectionLevel);
+        const styleQuery = styleParams.toString() ? `&${styleParams.toString()}` : '';
+
         // Fetch SVG
-        const svgRes = await fetch(`/api/qr-codes/render?text=${encodeURIComponent(targetUrl)}&format=svg`);
+        const svgRes = await fetch(
+          `/api/qr-codes/render?text=${encodeURIComponent(targetUrl)}&format=svg${styleQuery}`
+        );
         if (svgRes.ok && isMounted) {
           const svgText = await svgRes.text();
           setSvgContent(svgText);
         }
 
         // Fetch PNG Data URL
-        const pngRes = await fetch(`/api/qr-codes/render?text=${encodeURIComponent(targetUrl)}&format=png`);
+        const pngRes = await fetch(
+          `/api/qr-codes/render?text=${encodeURIComponent(targetUrl)}&format=png${styleQuery}`
+        );
         if (pngRes.ok && isMounted) {
           const data = await pngRes.json();
           setPngDataUrl(data.dataUrl);
@@ -50,7 +71,7 @@ export const QrPreviewModal: React.FC<QrPreviewModalProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [targetUrl]);
+  }, [targetUrl, styleConfig]);
 
   const handleDownloadSVG = () => {
     if (!svgContent) return;
@@ -70,6 +91,12 @@ export const QrPreviewModal: React.FC<QrPreviewModalProps> = ({
     link.download = `${name.toLowerCase().replace(/[^a-z0-9]/g, '-')}-qr.png`;
     link.click();
   };
+
+  // Derive color preview swatches from styleConfig
+  const fgColor = styleConfig?.fgColor || '#000000';
+  const bgColor = styleConfig?.bgColor || '#ffffff';
+  const hasCustomStyle =
+    fgColor !== '#000000' || bgColor !== '#ffffff' || Boolean(styleConfig?.logoUrl);
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-in fade-in-50">
@@ -106,6 +133,30 @@ export const QrPreviewModal: React.FC<QrPreviewModalProps> = ({
             <div className="text-sm text-rose-500">Failed to render QR Code</div>
           )}
         </div>
+
+        {/* Style summary */}
+        {hasCustomStyle && (
+          <div className="flex flex-wrap items-center gap-2 px-1">
+            <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Style:</span>
+            <span
+              className="inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-700"
+            >
+              <span
+                className="inline-block w-3.5 h-3.5 rounded-sm border border-slate-300"
+                style={{ backgroundColor: fgColor }}
+                title={`Foreground: ${fgColor}`}
+              />
+              <span
+                className="inline-block w-3.5 h-3.5 rounded-sm border border-slate-300"
+                style={{ backgroundColor: bgColor }}
+                title={`Background: ${bgColor}`}
+              />
+              {styleConfig?.logoUrl && (
+                <span className="text-indigo-600 font-semibold">+ Logo</span>
+              )}
+            </span>
+          </div>
+        )}
 
         {/* Destination Target Info */}
         <div className="bg-slate-50 p-3 rounded-lg border border-slate-200/80 text-xs">

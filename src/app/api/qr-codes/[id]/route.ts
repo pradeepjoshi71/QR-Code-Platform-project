@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 // Helper to authenticate session and verify membership in the active workspace
 async function getAuthenticatedUserWithActiveOrg() {
@@ -64,12 +65,17 @@ export async function PATCH(
     }
 
     const body = await req.json();
-    const { name, isActive, destinationUrl } = body;
+    const { name, isActive, destinationUrl, styleConfig, scheduledStart, expiresAt, routingRules, geoRules } = body;
 
     const dataToUpdate: {
       name?: string;
       isActive?: boolean;
       destinationUrl?: string;
+      styleConfig?: Prisma.InputJsonValue | typeof Prisma.JsonNull;
+      routingRules?: Prisma.InputJsonValue | typeof Prisma.JsonNull;
+      geoRules?: Prisma.InputJsonValue | typeof Prisma.JsonNull;
+      scheduledStart?: Date | null;
+      expiresAt?: Date | null;
     } = {};
 
     if (name !== undefined) {
@@ -107,6 +113,91 @@ export async function PATCH(
       } catch {
         return NextResponse.json(
           { error: 'Invalid destination URL. Must be a valid http or https URL.' },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (styleConfig !== undefined) {
+      if (styleConfig === null) {
+        dataToUpdate.styleConfig = Prisma.JsonNull;
+      } else if (typeof styleConfig === 'object' && !Array.isArray(styleConfig)) {
+        dataToUpdate.styleConfig = styleConfig as Prisma.InputJsonValue;
+      } else {
+        return NextResponse.json(
+          { error: 'styleConfig must be an object or null.' },
+          { status: 400 }
+        );
+      }
+    }
+
+    // scheduledStart and expiresAt — only allowed on DYNAMIC QR codes
+    if (scheduledStart !== undefined || expiresAt !== undefined) {
+      if (existingQr.type === 'STATIC') {
+        return NextResponse.json(
+          { error: 'Static QR codes do not support scheduling fields.' },
+          { status: 400 }
+        );
+      }
+      if (scheduledStart !== undefined) {
+        if (scheduledStart === null) {
+          dataToUpdate.scheduledStart = null;
+        } else {
+          const d = new Date(scheduledStart);
+          if (isNaN(d.getTime())) {
+            return NextResponse.json({ error: 'Invalid scheduledStart date.' }, { status: 400 });
+          }
+          dataToUpdate.scheduledStart = d;
+        }
+      }
+      if (expiresAt !== undefined) {
+        if (expiresAt === null) {
+          dataToUpdate.expiresAt = null;
+        } else {
+          const d = new Date(expiresAt);
+          if (isNaN(d.getTime())) {
+            return NextResponse.json({ error: 'Invalid expiresAt date.' }, { status: 400 });
+          }
+          dataToUpdate.expiresAt = d;
+        }
+      }
+    }
+
+    // routingRules — only allowed on DYNAMIC QR codes
+    if (routingRules !== undefined) {
+      if (existingQr.type === 'STATIC') {
+        return NextResponse.json(
+          { error: 'Static QR codes do not support routing rules.' },
+          { status: 400 }
+        );
+      }
+      if (routingRules === null) {
+        dataToUpdate.routingRules = Prisma.JsonNull;
+      } else if (typeof routingRules === 'object' && !Array.isArray(routingRules)) {
+        dataToUpdate.routingRules = routingRules as Prisma.InputJsonValue;
+      } else {
+        return NextResponse.json(
+          { error: 'routingRules must be an object or null.' },
+          { status: 400 }
+        );
+      }
+    }
+
+    // geoRules — only allowed on DYNAMIC QR codes
+    if (geoRules !== undefined) {
+      if (existingQr.type === 'STATIC') {
+        return NextResponse.json(
+          { error: 'Static QR codes do not support geo rules.' },
+          { status: 400 }
+        );
+      }
+      if (geoRules === null) {
+        dataToUpdate.geoRules = Prisma.JsonNull;
+      } else if (typeof geoRules === 'object' && !Array.isArray(geoRules)) {
+        dataToUpdate.geoRules = geoRules as Prisma.InputJsonValue;
+      } else {
+        return NextResponse.json(
+          { error: 'geoRules must be an object or null.' },
           { status: 400 }
         );
       }

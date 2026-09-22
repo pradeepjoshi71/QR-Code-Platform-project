@@ -17,10 +17,32 @@ export interface QrCodeItem {
   shortCode: string | null;
   destinationUrl: string;
   isActive: boolean;
+  scheduledStart: string | null;
+  expiresAt: string | null;
   createdAt: string;
+  styleConfig?: {
+    fgColor?: string;
+    bgColor?: string;
+    logoUrl?: string;
+    errorCorrectionLevel?: 'L' | 'M' | 'Q' | 'H';
+  } | null;
+  routingRules?: {
+    ios?: string;
+    android?: string;
+    desktop?: string;
+  } | null;
+  geoRules?: Record<string, string> | null;
 }
 
 export const QrCodesManager: React.FC = () => {
+  // Compute a schedule-aware status for a QR code
+  const getScheduleStatus = (qr: QrCodeItem): 'expired' | 'scheduled' | 'active' | 'inactive' => {
+    if (!qr.isActive) return 'inactive';
+    const now = new Date();
+    if (qr.expiresAt && new Date(qr.expiresAt) < now) return 'expired';
+    if (qr.scheduledStart && new Date(qr.scheduledStart) > now) return 'scheduled';
+    return 'active';
+  };
   const [qrCodes, setQrCodes] = useState<QrCodeItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -29,6 +51,7 @@ export const QrCodesManager: React.FC = () => {
     name: string;
     type: 'STATIC' | 'DYNAMIC';
     targetUrl: string;
+    styleConfig?: QrCodeItem['styleConfig'];
   } | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -172,20 +195,21 @@ export const QrCodesManager: React.FC = () => {
                         <Badge variant={qr.type === 'DYNAMIC' ? 'brand' : 'neutral'} size="sm">
                           {qr.type}
                         </Badge>
-                        <span
-                          className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${
-                            qr.isActive
-                              ? 'bg-emerald-50 text-emerald-700'
-                              : 'bg-slate-100 text-slate-500'
-                          }`}
-                        >
-                          <span
-                            className={`w-1.5 h-1.5 rounded-full ${
-                              qr.isActive ? 'bg-emerald-500' : 'bg-slate-400'
-                            }`}
-                          />
-                          {qr.isActive ? 'Active' : 'Inactive'}
-                        </span>
+                        {(() => {
+                          const status = getScheduleStatus(qr);
+                          const badgeMap = {
+                            expired:   { variant: 'neutral'  as const, label: 'Expired' },
+                            scheduled: { variant: 'warning'  as const, label: 'Scheduled' },
+                            active:    { variant: 'success'  as const, label: 'Active' },
+                            inactive:  { variant: 'neutral'  as const, label: 'Inactive' },
+                          };
+                          const { variant, label } = badgeMap[status];
+                          return (
+                            <Badge variant={variant} size="sm">
+                              {label}
+                            </Badge>
+                          );
+                        })()}
                       </div>
 
                       {/* Destination / Shortlink info */}
@@ -228,6 +252,7 @@ export const QrCodesManager: React.FC = () => {
                             name: qr.name,
                             type: qr.type,
                             targetUrl,
+                            styleConfig: qr.styleConfig,
                           })
                         }
                       >
@@ -309,6 +334,7 @@ export const QrCodesManager: React.FC = () => {
           name={previewQr.name}
           type={previewQr.type}
           targetUrl={previewQr.targetUrl}
+          styleConfig={previewQr.styleConfig}
           onClose={() => setPreviewQr(null)}
         />
       )}

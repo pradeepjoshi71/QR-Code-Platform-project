@@ -76,16 +76,36 @@ model QrCode {
   shortCode        String?      @unique
   destinationUrl   String
   isActive         Boolean      @default(true)
+  scheduledStart   DateTime?    // if set and in future, redirect returns 404 (not yet live)
+  expiresAt        DateTime?    // if set and in past, redirect returns 410 Gone
+  styleConfig      Json?        // { fgColor, bgColor, logoUrl?, errorCorrectionLevel }
+  routingRules     Json?        // { ios?: string, android?: string, desktop?: string } — DYNAMIC only
+  geoRules         Json?        // { [countryCode: string]: string } e.g. { "US": "https://…" } — DYNAMIC only
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 
   organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   createdByUser    User         @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
+  scanEvents       ScanEvent[]
 
   @@index([organizationId])
   @@index([createdByUserId])
   @@index([shortCode])
   @@map("qr_codes")
+}
+
+model ScanEvent {
+  id          String    @id @default(cuid())
+  qrCodeId    String
+  scannedAt   DateTime  @default(now())
+  country     String?   // ISO 3166-1 alpha-2 from x-vercel-ip-country header; null locally
+  deviceType  String?   // "ios" | "android" | "desktop" | "unknown"
+  referrer    String?   // value of the Referer request header, if present
+
+  qrCode      QrCode    @relation(fields: [qrCodeId], references: [id], onDelete: Cascade)
+
+  @@index([qrCodeId])
+  @@map("scan_events")
 }
 
 model Account {

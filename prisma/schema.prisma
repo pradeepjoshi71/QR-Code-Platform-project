@@ -33,21 +33,56 @@ model User {
   accounts       Account[]
   sessions       Session[]
   qrCodes        QrCode[]
+  invitesSent    Invite[]
+  apiKeys        ApiKey[]
+  auditLogs      AuditLog[]
 
   @@map("users")
 }
 
+enum SubscriptionStatus {
+  FREE
+  ACTIVE
+  PAST_DUE
+  CANCELED
+}
+
 model Organization {
-  id          String       @id @default(cuid())
-  name        String
-  slug        String       @unique
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id                   String             @id @default(cuid())
+  name                 String
+  slug                 String             @unique
+  stripeCustomerId     String?            @unique
+  stripeSubscriptionId String?            @unique
+  subscriptionStatus   SubscriptionStatus @default(FREE)
+  workosOrganizationId String?
+  ssoEnabled           Boolean            @default(false)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
 
   memberships Membership[]
   qrCodes     QrCode[]
+  campaigns   Campaign[]
+  invites     Invite[]
+  apiKeys     ApiKey[]
+  auditLogs   AuditLog[]
+  customDomain CustomDomain?
 
   @@map("organizations")
+}
+
+model Campaign {
+  id             String       @id @default(cuid())
+  organizationId String
+  name           String
+  description    String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  qrCodes        QrCode[]
+
+  @@index([organizationId])
+  @@map("campaigns")
 }
 
 model Membership {
@@ -67,6 +102,25 @@ model Membership {
   @@map("memberships")
 }
 
+model Invite {
+  id              String    @id @default(cuid())
+  organizationId  String
+  email           String
+  role            Role      @default(MEMBER)
+  token           String    @unique
+  invitedByUserId String
+  expiresAt       DateTime  // set to now()+7d on creation
+  acceptedAt      DateTime? // null until accepted
+  createdAt       DateTime  @default(now())
+
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invitedBy       User         @relation(fields: [invitedByUserId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([token])
+  @@map("invites")
+}
+
 model QrCode {
   id               String       @id @default(cuid())
   organizationId   String
@@ -81,16 +135,19 @@ model QrCode {
   styleConfig      Json?        // { fgColor, bgColor, logoUrl?, errorCorrectionLevel }
   routingRules     Json?        // { ios?: string, android?: string, desktop?: string } — DYNAMIC only
   geoRules         Json?        // { [countryCode: string]: string } e.g. { "US": "https://…" } — DYNAMIC only
+  campaignId       String?      // optional FK to Campaign — SetNull on campaign delete
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 
   organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   createdByUser    User         @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
+  campaign         Campaign?    @relation(fields: [campaignId], references: [id], onDelete: SetNull)
   scanEvents       ScanEvent[]
 
   @@index([organizationId])
   @@index([createdByUserId])
   @@index([shortCode])
+  @@index([campaignId])
   @@map("qr_codes")
 }
 
@@ -147,4 +204,53 @@ model VerificationToken {
 
   @@unique([identifier, token])
   @@map("verification_tokens")
+}
+
+model ApiKey {
+  id              String       @id @default(cuid())
+  organizationId  String
+  name            String
+  keyHash         String       @unique
+  keyPrefix       String
+  createdByUserId String
+  lastUsedAt      DateTime?
+  revokedAt       DateTime?
+  createdAt       DateTime     @default(now())
+
+  organization  Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdByUser User         @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([keyHash])
+  @@map("api_keys")
+}
+
+model AuditLog {
+  id             String       @id @default(cuid())
+  organizationId String
+  actorUserId    String
+  action         String
+  targetType     String?
+  targetId       String?
+  metadata       Json?
+  createdAt      DateTime     @default(now())
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  actorUser      User         @relation(fields: [actorUserId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, createdAt])
+  @@map("audit_logs")
+}
+
+model CustomDomain {
+  id               String       @id @default(cuid())
+  organizationId   String       @unique
+  domain           String       @unique
+  verified         Boolean      @default(false)
+  vercelConfigured Boolean      @default(false)
+  createdAt        DateTime     @default(now())
+
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("custom_domains")
 }

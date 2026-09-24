@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
+import { logAction } from '@/lib/audit-log';
 
 // Helper to authenticate session and verify membership in the active workspace
 async function getAuthenticatedUserWithActiveOrg() {
@@ -41,7 +42,7 @@ async function getAuthenticatedUserWithActiveOrg() {
   return { userId, activeOrgId, membership };
 }
 
-// PATCH /api/qr-codes/[id] - Update name, isActive, or destinationUrl (dynamic only)
+// PATCH /api/qr-codes/[id] - Update name, isActive, destinationUrl, styleConfig, scheduling, routing, geoRules, campaignId
 export async function PATCH(
   req: Request,
   { params }: { params: { id: string } }
@@ -65,7 +66,17 @@ export async function PATCH(
     }
 
     const body = await req.json();
-    const { name, isActive, destinationUrl, styleConfig, scheduledStart, expiresAt, routingRules, geoRules } = body;
+    const {
+      name,
+      isActive,
+      destinationUrl,
+      styleConfig,
+      scheduledStart,
+      expiresAt,
+      routingRules,
+      geoRules,
+      campaignId,
+    } = body;
 
     const dataToUpdate: {
       name?: string;
@@ -76,6 +87,7 @@ export async function PATCH(
       geoRules?: Prisma.InputJsonValue | typeof Prisma.JsonNull;
       scheduledStart?: Date | null;
       expiresAt?: Date | null;
+      campaignId?: string | null;
     } = {};
 
     if (name !== undefined) {
@@ -203,9 +215,36 @@ export async function PATCH(
       }
     }
 
+    // campaignId — null clears the assignment; string must belong to the same active org
+    if (campaignId !== undefined) {
+      if (campaignId === null) {
+        dataToUpdate.campaignId = null;
+      } else if (typeof campaignId === 'string') {
+        const campaign = await prisma.campaign.findUnique({
+          where: { id: campaignId },
+          select: { id: true, organizationId: true },
+        });
+        if (!campaign || campaign.organizationId !== activeOrgId) {
+          return NextResponse.json(
+            { error: 'Campaign not found or does not belong to this workspace.' },
+            { status: 403 }
+          );
+        }
+        dataToUpdate.campaignId = campaign.id;
+      } else {
+        return NextResponse.json(
+          { error: 'campaignId must be a string or null.' },
+          { status: 400 }
+        );
+      }
+    }
+
     const updated = await prisma.qrCode.update({
       where: { id },
       data: dataToUpdate,
+      include: {
+        campaign: { select: { id: true, name: true } },
+      },
     });
 
     return NextResponse.json({ qrCode: updated });
@@ -239,6 +278,20 @@ export async function DELETE(
 
     await prisma.qrCode.delete({
       where: { id },
+    });
+
+    // Fire-and-forget audit log
+    logAction({
+      organizationId: activeOrgId,
+      actorUserId: authResult.userId,
+      action: 'qrcode.deleted',
+      targetType: 'QrCode',
+      targetId: id,
+      metadata: {
+        name: existingQr.name,
+        shortCode: existingQr.shortCode,
+        type: existingQr.type,
+      },
     });
 
     return NextResponse.json({ message: 'QR code deleted successfully.' });

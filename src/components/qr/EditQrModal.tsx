@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import type { CampaignSummary } from '@/components/qr/QrCodesManager';
 
 interface StyleConfig {
   fgColor?: string;
@@ -24,17 +25,19 @@ interface EditQrModalProps {
     type: 'STATIC' | 'DYNAMIC';
     destinationUrl: string;
     isActive: boolean;
+    campaignId?: string | null;
     styleConfig?: StyleConfig | null;
     scheduledStart?: string | null;
     expiresAt?: string | null;
     routingRules?: RoutingRules | null;
     geoRules?: Record<string, string> | null;
   };
+  campaigns: CampaignSummary[];
   onClose: () => void;
   onSuccess: () => void;
 }
 
-export const EditQrModal: React.FC<EditQrModalProps> = ({ qrCode, onClose, onSuccess }) => {
+export const EditQrModal: React.FC<EditQrModalProps> = ({ qrCode, campaigns, onClose, onSuccess }) => {
   const [name, setName] = useState(qrCode.name);
   const [destinationUrl, setDestinationUrl] = useState(qrCode.destinationUrl);
   const [isActive, setIsActive] = useState(qrCode.isActive);
@@ -63,6 +66,8 @@ export const EditQrModal: React.FC<EditQrModalProps> = ({ qrCode, onClose, onSuc
     return Object.entries(qrCode.geoRules).map(([countryCode, url]) => ({ countryCode, url }));
   };
   const [geoRows, setGeoRows] = useState<GeoRow[]>(initGeoRows);
+  // Campaign assignment — empty string = "None"
+  const [campaignId, setCampaignId] = useState<string>(qrCode.campaignId ?? '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -120,6 +125,8 @@ export const EditQrModal: React.FC<EditQrModalProps> = ({ qrCode, onClose, onSuc
                 })(),
               }
             : {}),
+          // Campaign — send null to clear, string to assign
+          campaignId: campaignId || null,
         }),
       });
 
@@ -223,6 +230,25 @@ export const EditQrModal: React.FC<EditQrModalProps> = ({ qrCode, onClose, onSuc
                 Active status (allows dynamic redirect resolution)
               </span>
             </label>
+          </div>
+
+          {/* Campaign Assignment */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+              Campaign <span className="text-slate-400 font-normal normal-case">(optional)</span>
+            </label>
+            <select
+              value={campaignId}
+              onChange={(e) => setCampaignId(e.target.value)}
+              className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600 bg-white"
+            >
+              <option value="">None</option>
+              {campaigns.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Styling Section */}

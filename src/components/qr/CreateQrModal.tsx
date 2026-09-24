@@ -3,13 +3,15 @@
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import type { CampaignSummary } from '@/components/qr/QrCodesManager';
 
 interface CreateQrModalProps {
+  campaigns: CampaignSummary[];
   onClose: () => void;
   onSuccess: () => void;
 }
 
-export const CreateQrModal: React.FC<CreateQrModalProps> = ({ onClose, onSuccess }) => {
+export const CreateQrModal: React.FC<CreateQrModalProps> = ({ campaigns, onClose, onSuccess }) => {
   const [name, setName] = useState('');
   const [type, setType] = useState<'STATIC' | 'DYNAMIC'>('DYNAMIC');
   const [destinationUrl, setDestinationUrl] = useState('');
@@ -26,6 +28,8 @@ export const CreateQrModal: React.FC<CreateQrModalProps> = ({ onClose, onSuccess
   // Geo rules — DYNAMIC only. Stored as array of rows for easy add/remove UI.
   type GeoRow = { countryCode: string; url: string };
   const [geoRows, setGeoRows] = useState<GeoRow[]>([]);
+  // Campaign assignment
+  const [campaignId, setCampaignId] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -75,6 +79,8 @@ export const CreateQrModal: React.FC<CreateQrModalProps> = ({ onClose, onSuccess
                 };
               })()
             : {}),
+          // Campaign assignment — send null if none selected
+          ...(campaignId ? { campaignId } : {}),
         }),
       });
 
@@ -184,6 +190,27 @@ export const CreateQrModal: React.FC<CreateQrModalProps> = ({ onClose, onSuccess
               className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600"
             />
           </div>
+
+          {/* Campaign Assignment */}
+          {campaigns.length > 0 && (
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                Campaign <span className="text-slate-400 font-normal normal-case">(optional)</span>
+              </label>
+              <select
+                value={campaignId}
+                onChange={(e) => setCampaignId(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600 bg-white"
+              >
+                <option value="">None</option>
+                {campaigns.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Styling Section */}
           <div className="pt-1 border-t border-slate-100 space-y-3">

@@ -55,6 +55,48 @@ export const AppNavbar: React.FC = () => {
               >
                 QR Codes
               </Link>
+              <Link
+                href="/app/campaigns"
+                className="text-xs font-medium text-slate-600 hover:text-slate-900 px-2.5 py-1.5 rounded-md hover:bg-slate-50 transition-colors"
+              >
+                Campaigns
+              </Link>
+              <Link
+                href="/app/team"
+                className="text-xs font-medium text-slate-600 hover:text-slate-900 px-2.5 py-1.5 rounded-md hover:bg-slate-50 transition-colors"
+              >
+                Team
+              </Link>
+              <Link
+                href="/app/billing"
+                className="text-xs font-medium text-slate-600 hover:text-slate-900 px-2.5 py-1.5 rounded-md hover:bg-slate-50 transition-colors"
+              >
+                Billing
+              </Link>
+              <Link
+                href="/app/api-keys"
+                className="text-xs font-medium text-slate-600 hover:text-slate-900 px-2.5 py-1.5 rounded-md hover:bg-slate-50 transition-colors"
+              >
+                API Keys
+              </Link>
+              <Link
+                href="/app/domain"
+                className="text-xs font-medium text-slate-600 hover:text-slate-900 px-2.5 py-1.5 rounded-md hover:bg-slate-50 transition-colors"
+              >
+                Domain
+              </Link>
+              <Link
+                href="/app/sso"
+                className="text-xs font-medium text-slate-600 hover:text-slate-900 px-2.5 py-1.5 rounded-md hover:bg-slate-50 transition-colors"
+              >
+                SSO
+              </Link>
+              <Link
+                href="/app/audit-log"
+                className="text-xs font-medium text-slate-600 hover:text-slate-900 px-2.5 py-1.5 rounded-md hover:bg-slate-50 transition-colors"
+              >
+                Audit Log
+              </Link>
             </nav>
           </div>
 

@@ -32,6 +32,9 @@ export default async function DashboardPage() {
           </div>
 
           <div className="flex items-center gap-3">
+            <Button href="/app/billing" variant="outline" size="md">
+              Billing &amp; Plan
+            </Button>
             <Button href="/app/qr-codes" variant="primary" size="md">
               Manage &amp; Create QR Codes
             </Button>

@@ -150,6 +150,23 @@ export async function GET(
     // Referrer: read the standard Referer header (browsers spell it with one 'r').
     const referrer = req.headers.get('referer') ?? null;
 
+    // --- Safe redirect helper ---
+    // Validates that a URL's protocol is http or https before using it as a
+    // redirect target. Prevents open-redirect / XSS via javascript:, data:,
+    // or file: schemes that could be stored in routing/geo rule JSON objects.
+    function safeRedirectUrl(url: string, fallback: string): string {
+      try {
+        const parsed = new URL(url);
+        if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+          return url;
+        }
+      } catch {
+        // unparseable URL — fall through to fallback
+      }
+      console.warn(`Unsafe redirect URL blocked in QR rule: ${url.slice(0, 80)}`);
+      return fallback;
+    }
+
     // --- Resolve target URL (first matching rule wins) ---
 
     let targetUrl = qrCode.destinationUrl; // 6. default
@@ -157,17 +174,17 @@ export async function GET(
     // 4. Geo-based redirect
     const geoRules = qrCode.geoRules as Record<string, string> | null;
     if (geoRules && typeof geoRules === 'object' && country && geoRules[country]) {
-      targetUrl = geoRules[country];
+      targetUrl = safeRedirectUrl(geoRules[country], qrCode.destinationUrl);
     } else {
       // 5. Device/OS-based redirect rules
       const rules = qrCode.routingRules as { ios?: string; android?: string; desktop?: string } | null;
       if (rules && typeof rules === 'object') {
         if (isIOS && rules.ios) {
-          targetUrl = rules.ios;
+          targetUrl = safeRedirectUrl(rules.ios, qrCode.destinationUrl);
         } else if (isAndroid && rules.android) {
-          targetUrl = rules.android;
+          targetUrl = safeRedirectUrl(rules.android, qrCode.destinationUrl);
         } else if (!isIOS && !isAndroid && rules.desktop) {
-          targetUrl = rules.desktop;
+          targetUrl = safeRedirectUrl(rules.desktop, qrCode.destinationUrl);
         }
       }
     }

@@ -137,10 +137,13 @@ export async function GET(req: NextRequest) {
       activeOrgRole: result.membership.role,
     };
 
+    const MAX_AGE = 30 * 24 * 60 * 60; // 30 days in seconds (matches NextAuth default)
+
     const sessionToken = await encode({
       token: sessionPayload,
       secret,
       salt: primaryCookieName,
+      maxAge: MAX_AGE,
     });
 
     const response = NextResponse.redirect(new URL('/app', req.url));
@@ -150,6 +153,7 @@ export async function GET(req: NextRequest) {
       sameSite: 'lax',
       path: '/',
       secure: isProduction,
+      maxAge: MAX_AGE,
     });
 
     response.cookies.set(legacyCookieName, sessionToken, {
@@ -157,6 +161,7 @@ export async function GET(req: NextRequest) {
       sameSite: 'lax',
       path: '/',
       secure: isProduction,
+      maxAge: MAX_AGE,
     });
 
     return response;

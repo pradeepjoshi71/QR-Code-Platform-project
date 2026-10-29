@@ -1,49 +1,8 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { generateUniqueShortCode } from '@/lib/shortcode';
 import { PLAN_LIMITS } from '@/lib/plan-limits';
-
-// Helper to authenticate session and verify membership in the active workspace
-async function getAuthenticatedUserWithActiveOrg() {
-  const session = await auth();
-
-  if (!session?.user?.id) {
-    return { error: 'Unauthorized', status: 401 } as const;
-  }
-
-  const userId = session.user.id;
-  let activeOrgId = session.user.activeOrgId;
-
-  // Fallback to primary membership if activeOrgId not set in session
-  if (!activeOrgId) {
-    const membership = await prisma.membership.findFirst({
-      where: { userId },
-      orderBy: { createdAt: 'asc' },
-    });
-    if (!membership) {
-      return { error: 'No workspace found for this user', status: 403 } as const;
-    }
-    activeOrgId = membership.orgId;
-  }
-
-  // Verify membership in this active organization, including organization details
-  const membership = await prisma.membership.findUnique({
-    where: {
-      userId_orgId: {
-        userId,
-        orgId: activeOrgId,
-      },
-    },
-    include: { organization: true },
-  });
-
-  if (!membership) {
-    return { error: 'Access to the specified workspace is forbidden', status: 403 } as const;
-  }
-
-  return { userId, activeOrgId, membership };
-}
+import { getAuthenticatedUserWithActiveOrg } from '@/lib/auth-helpers';
 
 // GET /api/qr-codes - List all QR codes for the active organization
 export async function GET() {

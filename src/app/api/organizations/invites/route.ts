@@ -1,46 +1,9 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { nanoid } from 'nanoid';
 import { getResend, FROM_EMAIL } from '@/lib/resend';
 import { logAction } from '@/lib/audit-log';
-
-// ---------------------------------------------------------------------------
-// Auth helper — same pattern as all other org-scoped API routes.
-// Returns membership so callers can check role.
-// ---------------------------------------------------------------------------
-async function getAuthenticatedUserWithActiveOrg() {
-  const session = await auth();
-
-  if (!session?.user?.id) {
-    return { error: 'Unauthorized', status: 401 } as const;
-  }
-
-  const userId = session.user.id;
-  let activeOrgId = session.user.activeOrgId;
-
-  if (!activeOrgId) {
-    const firstMembership = await prisma.membership.findFirst({
-      where: { userId },
-      orderBy: { createdAt: 'asc' },
-    });
-    if (!firstMembership) {
-      return { error: 'No workspace found for this user', status: 403 } as const;
-    }
-    activeOrgId = firstMembership.orgId;
-  }
-
-  const membership = await prisma.membership.findUnique({
-    where: { userId_orgId: { userId, orgId: activeOrgId } },
-    include: { organization: true },
-  });
-
-  if (!membership) {
-    return { error: 'Access to the specified workspace is forbidden', status: 403 } as const;
-  }
-
-  return { userId, activeOrgId, membership };
-}
+import { getAuthenticatedUserWithActiveOrg } from '@/lib/auth-helpers';
 
 // ---------------------------------------------------------------------------
 // GET /api/organizations/invites

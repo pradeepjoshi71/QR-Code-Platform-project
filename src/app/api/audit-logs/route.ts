@@ -1,42 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-
-// ---------------------------------------------------------------------------
-// Auth helper — verifies user and retrieves active organization membership
-// ---------------------------------------------------------------------------
-async function getAuthenticatedUserWithActiveOrg() {
-  const session = await auth();
-
-  if (!session?.user?.id) {
-    return { error: 'Unauthorized', status: 401 } as const;
-  }
-
-  const userId = session.user.id;
-  let activeOrgId = session.user.activeOrgId;
-
-  if (!activeOrgId) {
-    const firstMembership = await prisma.membership.findFirst({
-      where: { userId },
-      orderBy: { createdAt: 'asc' },
-    });
-    if (!firstMembership) {
-      return { error: 'No workspace found for this user', status: 403 } as const;
-    }
-    activeOrgId = firstMembership.orgId;
-  }
-
-  const membership = await prisma.membership.findUnique({
-    where: { userId_orgId: { userId, orgId: activeOrgId } },
-    include: { organization: true },
-  });
-
-  if (!membership) {
-    return { error: 'Access to the specified workspace is forbidden', status: 403 } as const;
-  }
-
-  return { userId, activeOrgId, membership };
-}
+import { getAuthenticatedUserWithActiveOrg } from '@/lib/auth-helpers';
 
 // ---------------------------------------------------------------------------
 // GET /api/audit-logs

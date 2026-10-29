@@ -1,0 +1,52 @@
+
+changed 10 packages, and audited 502 packages in 6m
+
+178 packages are looking for funding
+  run `npm fund` for details
+
+# npm audit report
+
+cookie  <0.7.0
+cookie accepts cookie name, path, and domain with out of bounds characters - https://github.com/advisories/GHSA-pxg6-pf52-xh8x
+fix available via `npm audit fix`
+node_modules/cookie
+  iron-session  <=8.0.3
+  Depends on vulnerable versions of cookie
+  node_modules/iron-session
+    @workos-inc/node  7.15.0 - 7.82.0
+    Depends on vulnerable versions of iron-session
+    Depends on vulnerable versions of qs
+    node_modules/@workos-inc/node
+
+deepmerge  >=4.2.0
+deepmerge mergeObject() allows prototype poisoning of returned objects - https://github.com/advisories/GHSA-gcqx-w48m-w2h4
+fix available via `npm audit fix --force`
+Will install resend@6.35.0, which is a breaking change
+node_modules/deepmerge
+  html-to-text  6.0.0 - 9.0.5
+  Depends on vulnerable versions of deepmerge
+  node_modules/html-to-text
+    @react-email/render  0.0.4 - 2.1.1
+    Depends on vulnerable versions of html-to-text
+    node_modules/@react-email/render
+      resend  0.10.0 - 6.1.1 || 6.2.0-canary.0 - 6.2.0-preview-contacts.0
+      Depends on vulnerable versions of @react-email/render
+      node_modules/resend
+
+qs  2.2.5 - 6.16.0
+Severity: moderate
+qs's arrayLimit bypass in comma parsing allows denial of service - https://github.com/advisories/GHSA-w7fw-mjwx-w883
+qs has a remotely triggerable DoS: qs.stringify crashes with TypeError on null/undefined entries in comma-format arrays when encodeValuesOnly is set - https://github.com/advisories/GHSA-q8mj-m7cp-5q26
+qs: Denial of Service via Attacker Controlled isBuffer - https://github.com/advisories/GHSA-4mjr-xmp4-gh2g
+qs : qs.stringify with arrayFormat 'comma' throws an uncaught TypeError on array elements carrying a non-callable own toString (DoS) - https://github.com/advisories/GHSA-6pq8-jhm2-2vcw
+fix available via `npm audit fix`
+node_modules/@workos-inc/node/node_modules/qs
+
+8 vulnerabilities (6 low, 2 moderate)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+Command failed: npm audit fix

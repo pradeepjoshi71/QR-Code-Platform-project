@@ -5,6 +5,7 @@ export interface AuthenticatedApiKey {
   organizationId: string;
   apiKeyId: string;
   createdByUserId: string;
+  keyHash: string;
 }
 
 /**
@@ -62,5 +63,6 @@ export async function authenticateApiKey(
     organizationId: apiKey.organizationId,
     apiKeyId: apiKey.id,
     createdByUserId: apiKey.createdByUserId,
+    keyHash,
   };
 }

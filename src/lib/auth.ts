@@ -58,6 +58,27 @@ export const authConfig: NextAuthConfig = {
     }),
   ],
   callbacks: {
+    async signIn({ user, account }) {
+      if (account?.provider === 'google' && user.email) {
+        const existingUser = await prisma.user.findUnique({
+          where: { email: user.email.toLowerCase().trim() },
+          include: { accounts: true },
+        });
+
+        if (existingUser) {
+          const isGoogleLinked = existingUser.accounts.some(
+            (acc) => acc.provider === 'google' && acc.providerAccountId === account.providerAccountId
+          );
+
+          if (!isGoogleLinked && !existingUser.emailVerified) {
+            return `/sign-in?error=${encodeURIComponent(
+              'Security restriction: Cannot link Google sign-in to an account with an unverified email address. Please verify your email first.'
+            )}`;
+          }
+        }
+      }
+      return true;
+    },
     async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id;

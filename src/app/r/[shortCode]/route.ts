@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getClientIp, limitRedirect, rateLimitRedirectResponse } from '@/lib/ratelimit';
 
 const EXPIRED_HTML = `<!DOCTYPE html>
 <html lang="en">
@@ -100,6 +101,12 @@ export async function GET(
 
     if (!shortCode) {
       return new NextResponse('Shortcode is required', { status: 400 });
+    }
+
+    const ip = getClientIp(req);
+    const rateLimit = await limitRedirect(ip);
+    if (!rateLimit.success) {
+      return rateLimitRedirectResponse(rateLimit.reset);
     }
 
     const qrCode = await prisma.qrCode.findUnique({

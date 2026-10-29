@@ -1,4 +1,4 @@
-import { WorkOS } from '@workos-inc/node';
+import { WorkOS, GeneratePortalLinkIntent } from '@workos-inc/node';
 
 // ---------------------------------------------------------------------------
 // WorkOS Lazy Singleton Client (QR-P11.1 Enterprise SSO)
@@ -44,7 +44,7 @@ export async function getAdminPortalLink(workosOrganizationId: string): Promise<
   const workos = getWorkOS();
   const { link } = await workos.portal.generateLink({
     organization: workosOrganizationId,
-    intent: 'sso',
+    intent: GeneratePortalLinkIntent.SSO,
   });
   return link;
 }
@@ -87,6 +87,9 @@ export async function handleSsoCallback(code: string): Promise<{
 }> {
   const workos = getWorkOS();
   const clientId = process.env.WORKOS_CLIENT_ID;
+  if (!clientId) {
+    throw new Error('WORKOS_CLIENT_ID is not configured in environment.');
+  }
 
   const { profile } = await workos.sso.getProfileAndToken({
     code,

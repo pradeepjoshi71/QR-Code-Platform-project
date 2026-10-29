@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authenticateApiKey } from '@/lib/api-auth';
 import { createQrCode, listQrCodes } from '@/lib/qr-service';
+import { limitApiV1, rateLimitJsonResponse } from '@/lib/ratelimit';
 
 // ---------------------------------------------------------------------------
 // GET /api/v1/qr-codes
@@ -15,6 +16,11 @@ export async function GET(req: NextRequest) {
         { error: 'Unauthorized: Missing or invalid API key.' },
         { status: 401 }
       );
+    }
+
+    const rateLimit = await limitApiV1(auth.keyHash);
+    if (!rateLimit.success) {
+      return rateLimitJsonResponse(rateLimit.reset);
     }
 
     const qrCodes = await listQrCodes(auth.organizationId);
@@ -40,6 +46,11 @@ export async function POST(req: NextRequest) {
         { error: 'Unauthorized: Missing or invalid API key.' },
         { status: 401 }
       );
+    }
+
+    const rateLimit = await limitApiV1(auth.keyHash);
+    if (!rateLimit.success) {
+      return rateLimitJsonResponse(rateLimit.reset);
     }
 
     let body: Record<string, unknown>;

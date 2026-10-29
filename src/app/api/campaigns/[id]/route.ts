@@ -1,43 +1,6 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-
-async function getAuthenticatedUserWithActiveOrg() {
-  const session = await auth();
-
-  if (!session?.user?.id) {
-    return { error: 'Unauthorized', status: 401 };
-  }
-
-  const userId = session.user.id;
-  let activeOrgId = session.user.activeOrgId;
-
-  if (!activeOrgId) {
-    const membership = await prisma.membership.findFirst({
-      where: { userId },
-      orderBy: { createdAt: 'asc' },
-    });
-    if (!membership) {
-      return { error: 'No workspace found for this user', status: 403 };
-    }
-    activeOrgId = membership.orgId;
-  }
-
-  const membership = await prisma.membership.findUnique({
-    where: {
-      userId_orgId: {
-        userId,
-        orgId: activeOrgId,
-      },
-    },
-  });
-
-  if (!membership) {
-    return { error: 'Access to the specified workspace is forbidden', status: 403 };
-  }
-
-  return { userId, activeOrgId, membership };
-}
+import { getAuthenticatedUserWithActiveOrg } from '@/lib/auth-helpers';
 
 // PATCH /api/campaigns/[id] — rename or update description
 export async function PATCH(
